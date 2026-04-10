@@ -41,7 +41,7 @@ export default function BenefitsSection() {
               className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col md:flex-row items-center"
             >
               {/* Image - responsive size */}
-              <div className="w-full md:w-64 h-48 md:h-64 relative flex-shrink-0">
+              <div className="w-full md:w-64 h-48 md:h-64 relative shrink-0">
                 <Image
                   src={benefit.image}
                   alt={benefit.title}

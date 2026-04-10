@@ -21,7 +21,7 @@ export default function HeroSection() {
           href="#entry-form"
           className="inline-block bg-white text-blue-600 font-bold text-lg py-4 px-8 rounded-lg hover:bg-gray-100 transition-all mb-6"
         >
-          Pay $0.99 & Join Now
+          Join MR BEAST CHALLENGE for $0.99
         </a>
         <p className="text-sm text-blue-100">
           No PayPal account needed. Pay with your debit or credit card.
