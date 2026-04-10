@@ -20,14 +20,23 @@ export default function HeroSection() {
           YouTube competition and compete for HUGE cash prizes.
         </p>
         <a
-          href="#entry-form"
+          href="/signup"
           className="inline-block bg-white text-blue-600 font-bold text-base md:text-lg py-3 md:py-4 px-6 md:px-8 rounded-lg hover:bg-gray-100 transition-all mb-4 md:mb-6"
         >
           👉 Join MR BEAST CHALLENGE for $0.99
         </a>
-        <p className="text-xs md:text-sm text-blue-100 px-2">
+        <p className="text-xs md:text-sm text-blue-100 px-2 mb-6">
           No PayPal account needed. Pay with your debit or credit card.
         </p>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+          <p className="text-blue-100 text-sm">Already signed up?</p>
+          <a
+            href="/login"
+            className="inline-block bg-transparent border-2 border-white text-white font-bold text-sm md:text-base py-2 md:py-3 px-6 rounded-lg hover:bg-white hover:text-blue-600 transition-all"
+          >
+            Login to Payment
+          </a>
+        </div>
       </div>
     </section>
   );

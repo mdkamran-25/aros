@@ -1,26 +1,82 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { validatePassword } from "@/lib/utils/passwordValidator";
 
 export default function EntryForm() {
-  const [formData, setFormData] = useState({ name: "", email: "" });
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+  const [emailChecked, setEmailChecked] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+
+    // Clear password errors when user changes password
+    if (name === "password" || name === "confirmPassword") {
+      setPasswordErrors([]);
+    }
+  };
+
+  // Check if email already exists
+  const handleEmailBlur = async () => {
+    if (!formData.email.trim()) {
+      setEmailChecked(false);
+      setEmailExists(false);
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setEmailChecked(true);
+      setEmailExists(false);
+      return;
+    }
+
+    setEmailCheckLoading(true);
+    try {
+      const response = await fetch("/api/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const data = await response.json();
+      setEmailExists(data.exists || false);
+      setEmailChecked(true);
+    } catch (err) {
+      console.error("Email check failed:", err);
+      setEmailChecked(false);
+    } finally {
+      setEmailCheckLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    setSuccess(false);
+    setPasswordErrors([]);
 
-    if (!formData.name.trim() || !formData.email.trim()) {
+    // Validate all fields
+    if (
+      !formData.name.trim() ||
+      !formData.email.trim() ||
+      !formData.password.trim()
+    ) {
       setError("Please fill in all fields");
       return;
     }
@@ -28,6 +84,26 @@ export default function EntryForm() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError("Please enter a valid email address");
+      return;
+    }
+
+    // Check if email already exists
+    if (emailExists) {
+      setError("This email is already registered. Please log in instead.");
+      return;
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.valid) {
+      setPasswordErrors(passwordValidation.errors);
+      setError("Please fix the password requirements");
+      return;
+    }
+
+    // Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
@@ -41,6 +117,8 @@ export default function EntryForm() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
           amount: "0.99",
         }),
       });
@@ -48,15 +126,12 @@ export default function EntryForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Payment processing failed");
+        setError(data.error || "Signup failed");
         return;
       }
 
-      setSuccess(true);
-      setFormData({ name: "", email: "" });
-
-      // In production, this would redirect to PayPal or show success page
-      console.log("Transaction ID:", data.transactionId);
+      // Redirect to signup confirmation page
+      router.push(`/signup/confirm?transactionId=${data.transactionId}`);
     } catch (err) {
       setError("An error occurred. Please try again.");
       console.error(err);
@@ -65,58 +140,141 @@ export default function EntryForm() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-        <h3 className="text-2xl font-bold text-green-700 mb-2">🎉 Success!</h3>
-        <p className="text-green-600 mb-2">
-          You've successfully entered the MR BEAST CHALLENGE.
-        </p>
-        <p className="text-sm text-gray-600">
-          Check your email for competition details and next steps.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Name Field */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Your Name
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Full Name *
         </label>
         <input
           type="text"
+          id="name"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="Enter your full name"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          required
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          placeholder="John Doe"
+          disabled={loading}
         />
       </div>
+
+      {/* Email Field */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Email Address
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Email Address *
+        </label>
+        <div className="flex gap-2 items-end">
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            onBlur={handleEmailBlur}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            placeholder="your@email.com"
+            disabled={loading}
+          />
+          {emailCheckLoading && (
+            <span className="text-gray-500 text-xs">Checking...</span>
+          )}
+        </div>
+        {emailChecked && !emailCheckLoading && (
+          <div className="mt-1">
+            {emailExists ? (
+              <p className="text-red-600 text-xs">
+                ✗ This email is already registered
+              </p>
+            ) : (
+              <p className="text-green-600 text-xs">✓ Email available</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Password Field */}
+      <div>
+        <label
+          htmlFor="password"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Password *
         </label>
         <input
-          type="email"
-          name="email"
-          value={formData.email}
+          type="password"
+          id="password"
+          name="password"
+          value={formData.password}
           onChange={handleChange}
-          placeholder="Enter your email"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          required
+          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+            passwordErrors.length > 0
+              ? "border-red-300 focus:ring-red-500"
+              : "border-gray-300 focus:ring-yellow-500"
+          }`}
+          placeholder="Min 8 chars, uppercase, number, special"
+          disabled={loading}
         />
+        {passwordErrors.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {passwordErrors.map((error, idx) => (
+              <p key={idx} className="text-red-600 text-xs">
+                ✗ {error}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+
+      {/* Confirm Password Field */}
+      <div>
+        <label
+          htmlFor="confirmPassword"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Confirm Password *
+        </label>
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          placeholder="Re-enter your password"
+          disabled={loading}
+        />
+        {formData.password &&
+          formData.confirmPassword &&
+          formData.password === formData.confirmPassword && (
+            <p className="mt-1 text-green-600 text-xs">✓ Passwords match</p>
+          )}
+      </div>
+
+      {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={loading || emailExists || emailCheckLoading}
+        className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
       >
-        {loading ? "Processing..." : "Continue to Payment ($0.99)"}
+        {loading ? "Processing..." : "Enter the Challenge"}
       </button>
+
+      <p className="text-xs text-gray-500 text-center">
+        By entering, you agree to the competition terms and privacy policy.
+      </p>
     </form>
   );
 }

@@ -5,7 +5,6 @@ import HowItWorksSection from "./components/HowItWorksSection";
 import PaymentSection from "./components/PaymentSection";
 import UrgencySection from "./components/UrgencySection";
 import FinalCtaSection from "./components/FinalCtaSection";
-import EntryForm from "./components/EntryForm";
 
 export default function Home() {
   return (
@@ -14,17 +13,6 @@ export default function Home() {
       <AboutSection />
       <BenefitsSection />
       <HowItWorksSection />
-
-      {/* Entry Form Section */}
-      <section id="entry-form" className="py-20 px-4 bg-white">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">
-            Ready to Enter?
-          </h2>
-          <EntryForm />
-        </div>
-      </section>
-
       <PaymentSection />
       <UrgencySection />
       <FinalCtaSection />
