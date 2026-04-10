@@ -1,39 +1,65 @@
+import Image from "next/image";
+
 export default function BenefitsSection() {
   const benefits = [
     {
-      emoji: "💰",
       title: "Chance to win BIG cash prizes",
+      description:
+        "Compete in our viral YouTube competition for life-changing rewards. The more participants, the bigger the prize pool grows. Your $0.99 entry could turn into thousands in cash prizes.",
+      image: "/img/image1.png",
     },
     {
-      emoji: "🎥",
       title: "Be featured in MR BEAST CHALLENGE videos",
+      description:
+        "Selected winners and top performers will be featured in official MR BEAST CHALLENGE YouTube videos. Get exposed to millions of viewers worldwide and build your own fanbase.",
+      image: "/img/images2.jpeg",
     },
     {
-      emoji: "🌍",
       title: "Compete with participants worldwide",
+      description:
+        "Join a global community of millions competing in real-time challenges. Test your skills against the best participants from every corner of the world and climb the leaderboards.",
+      image: "/img/images3.jpeg",
     },
     {
-      emoji: "💵",
       title: "Entry costs less than $1",
+      description:
+        "Join the challenge for just $0.99 — the lowest barrier to entry for the highest rewards. No hidden fees, no PayPal account required. Pay with any debit or credit card instantly.",
+      image: "/img/images4.jpeg",
     },
   ];
 
   return (
     <section className="py-20 px-4 bg-gray-50">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-4xl font-bold mb-12 text-center">
-          💥 Why Join MR BEAST CHALLENGE?
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-4xl text-black font-bold mb-12 text-center">
+          Why Join MR BEAST CHALLENGE?
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-8">
           {benefits.map((benefit, idx) => (
             <div
               key={idx}
-              className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex items-center"
             >
-              <div className="text-5xl mb-4">{benefit.emoji}</div>
-              <p className="text-xl font-semibold text-gray-800">
-                {benefit.title}
-              </p>
+              {/* Image on the left - Square container */}
+              <div className="flex-shrink-0 w-64 h-64 relative">
+                <Image
+                  src={benefit.image}
+                  alt={benefit.title}
+                  fill
+                  sizes="256px"
+                  className="object-cover"
+                />
+              </div>
+
+              {/* Description on the right */}
+              <div className="flex-1 p-8">
+                <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+                  {benefit.title}
+                </h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  {benefit.description}
+                </p>
+              </div>
             </div>
           ))}
         </div>

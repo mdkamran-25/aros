@@ -2,8 +2,8 @@ export default function PaymentSection() {
   return (
     <section className="py-20 px-4 bg-gray-50">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-4xl font-bold mb-8 text-center">
-          🔒 Secure Entry for MR BEAST CHALLENGE
+        <h2 className="text-4xl text-black font-bold mb-8 text-center">
+          Secure Entry for MR BEAST CHALLENGE
         </h2>
         <p className="text-lg text-gray-700 text-center mb-8">
           All payments for MR BEAST CHALLENGE are securely processed via PayPal.
