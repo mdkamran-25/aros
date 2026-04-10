@@ -29,34 +29,34 @@ export default function BenefitsSection() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-gray-50">
+    <section className="py-12 md:py-20 px-4 bg-gray-50">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl text-black font-bold mb-12 text-center">
+        <h2 className="text-2xl md:text-4xl text-black font-bold mb-8 md:mb-12 text-center">
           Why Join MR BEAST CHALLENGE?
         </h2>
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           {benefits.map((benefit, idx) => (
             <div
               key={idx}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex items-center"
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col md:flex-row items-center"
             >
-              {/* Image on the left - Square container */}
-              <div className="flex-shrink-0 w-64 h-64 relative">
+              {/* Image - responsive size */}
+              <div className="w-full md:w-64 h-48 md:h-64 relative flex-shrink-0">
                 <Image
                   src={benefit.image}
                   alt={benefit.title}
                   fill
-                  sizes="256px"
+                  sizes="(max-width: 768px) 100vw, 256px"
                   className="object-cover"
                 />
               </div>
 
               {/* Description on the right */}
-              <div className="flex-1 p-8">
-                <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+              <div className="flex-1 p-6 md:p-8">
+                <h3 className="text-xl md:text-2xl font-semibold text-gray-800 mb-2 md:mb-3">
                   {benefit.title}
                 </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
+                <p className="text-base md:text-lg text-gray-600 leading-relaxed">
                   {benefit.description}
                 </p>
               </div>
