@@ -59,84 +59,122 @@ export default function PaymentPage() {
   const loadPayPalScript = () => {
     if (window.paypal) {
       setPaypalReady(true);
-      renderPayPalButton();
+      return;
+    }
+
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+
+    if (!clientId) {
+      console.error("PayPal Client ID not configured in environment variables");
+      setPaypalError(
+        "PayPal is not configured. Please check environment variables.",
+      );
       return;
     }
 
     const script = document.createElement("script");
-    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
     script.async = true;
     script.onload = () => {
+      console.log("PayPal SDK loaded successfully");
       setPaypalReady(true);
-      renderPayPalButton();
     };
-    script.onerror = () => {
-      setPaypalError("Failed to load PayPal. Please refresh the page.");
+    script.onerror = (error) => {
+      console.error("PayPal SDK failed to load:", error);
+      setPaypalError(
+        "Failed to load PayPal payment system. Please refresh the page or try again later.",
+      );
     };
     document.body.appendChild(script);
   };
 
-  // Render PayPal button
-  const renderPayPalButton = () => {
-    if (!window.paypal) return;
+  // Render PayPal button when SDK is ready and element exists
+  useEffect(() => {
+    if (!paypalReady || !user?.verified) return;
 
-    window.paypal
-      .Buttons({
-        createOrder: (data: any, actions: any) => {
-          return actions.order.create({
-            purchase_units: [
-              {
-                amount: {
-                  value: "0.99",
+    const container = document.getElementById("paypal-button-container");
+    if (!container) return; // Element not in DOM yet
+
+    // Check if button is already rendered (prevent double render in strict mode)
+    if (container.innerHTML.includes("paypal")) return;
+
+    if (!window.paypal || !window.paypal.Buttons) {
+      console.error("PayPal SDK not properly initialized");
+      setPaypalError(
+        "PayPal SDK initialization failed. Please refresh the page.",
+      );
+      return;
+    }
+
+    try {
+      window.paypal
+        .Buttons({
+          createOrder: (data: any, actions: any) => {
+            return actions.order.create({
+              purchase_units: [
+                {
+                  amount: {
+                    value: "0.99",
+                  },
+                  description: "MR BEAST CHALLENGE Entry fee",
                 },
-                description: "MR BEAST CHALLENGE Entry fee",
-              },
-            ],
-          });
-        },
-        onApprove: async (data: any, actions: any) => {
-          setProcessingPayment(true);
-          try {
-            // Capture the order
-            const details = await actions.order.capture();
-
-            // Mark payment as completed in database
-            const response = await fetch("/api/payment-complete", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ email: user.email }),
+              ],
             });
+          },
+          onApprove: async (data: any, actions: any) => {
+            setProcessingPayment(true);
+            try {
+              // Capture the order
+              const details = await actions.order.capture();
 
-            if (!response.ok) {
-              throw new Error("Failed to complete payment in database");
+              // Mark payment as completed in database
+              const response = await fetch("/api/payment-complete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ email: user.email }),
+              });
+
+              if (!response.ok) {
+                throw new Error("Failed to complete payment in database");
+              }
+
+              // Redirect to success page
+              const params = new URLSearchParams({
+                tid: user.transactionId || "",
+                email: user.email || "",
+                name: user.name || "",
+              });
+              router.push(`/success?${params.toString()}`);
+            } catch (err) {
+              console.error("Payment error:", err);
+              setPaypalError(
+                "Payment was successful but failed to save. Please contact support with your order ID.",
+              );
+              setProcessingPayment(false);
             }
-
-            // Redirect to success page
-            const params = new URLSearchParams({
-              tid: user.transactionId || "",
-              email: user.email || "",
-              name: user.name || "",
-            });
-            router.push(`/success?${params.toString()}`);
-          } catch (err) {
-            console.error("Payment error:", err);
+          },
+          onError: (err: any) => {
+            console.error("PayPal error:", err);
             setPaypalError(
-              "Payment was successful but failed to save. Please contact support with your order ID.",
+              "Payment failed. Please try again or use a different payment method.",
             );
             setProcessingPayment(false);
-          }
-        },
-        onError: (err: any) => {
-          console.error("PayPal error:", err);
-          setPaypalError(
-            "Payment failed. Please try again or use a different payment method.",
-          );
-          setProcessingPayment(false);
-        },
-      })
-      .render("#paypal-button-container");
-  };
+          },
+        })
+        .render("#paypal-button-container");
+    } catch (error) {
+      console.error("Error rendering PayPal button:", error);
+      setPaypalError("Failed to initialize PayPal checkout. Please try again.");
+    }
+  }, [
+    paypalReady,
+    user?.verified,
+    user?.email,
+    user?.transactionId,
+    user?.name,
+    router,
+  ]);
 
   const handleLogout = async () => {
     try {
