@@ -162,7 +162,7 @@ export default function EntryForm() {
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder:text-gray-400"
           placeholder="John Doe"
           disabled={loading}
         />
@@ -184,7 +184,7 @@ export default function EntryForm() {
             value={formData.email}
             onChange={handleChange}
             onBlur={handleEmailBlur}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder:text-gray-400"
             placeholder="your@email.com"
             disabled={loading}
           />
@@ -219,7 +219,7 @@ export default function EntryForm() {
           name="password"
           value={formData.password}
           onChange={handleChange}
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 placeholder:text-gray-400 ${
             passwordErrors.length > 0
               ? "border-red-300 focus:ring-red-500"
               : "border-gray-300 focus:ring-yellow-500"
@@ -252,7 +252,7 @@ export default function EntryForm() {
           name="confirmPassword"
           value={formData.confirmPassword}
           onChange={handleChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder:text-gray-400"
           placeholder="Re-enter your password"
           disabled={loading}
         />
