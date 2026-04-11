@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSessionEmail, clearSession } from "@/lib/auth-client";
 
+declare global {
+  interface Window {
+    paypal: any;
+  }
+}
+
 export default function PaymentPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -12,6 +18,8 @@ export default function PaymentPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
+  const [paypalReady, setPaypalReady] = useState(false);
+  const [paypalError, setPaypalError] = useState("");
 
   useEffect(() => {
     // Check if user is logged in by validating with server
@@ -32,6 +40,11 @@ export default function PaymentPage() {
         const userData = await response.json();
         setUser(userData.user);
         setLoading(false);
+
+        // Load PayPal script if user is verified
+        if (userData.user.verified) {
+          loadPayPalScript();
+        }
       } catch (err) {
         console.error(err);
         router.push("/login");
@@ -41,6 +54,89 @@ export default function PaymentPage() {
     const timer = setTimeout(checkAuth, 100); // Small delay to ensure cookies are set
     return () => clearTimeout(timer);
   }, [router]);
+
+  // Load PayPal script
+  const loadPayPalScript = () => {
+    if (window.paypal) {
+      setPaypalReady(true);
+      renderPayPalButton();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+    script.async = true;
+    script.onload = () => {
+      setPaypalReady(true);
+      renderPayPalButton();
+    };
+    script.onerror = () => {
+      setPaypalError("Failed to load PayPal. Please refresh the page.");
+    };
+    document.body.appendChild(script);
+  };
+
+  // Render PayPal button
+  const renderPayPalButton = () => {
+    if (!window.paypal) return;
+
+    window.paypal
+      .Buttons({
+        createOrder: (data: any, actions: any) => {
+          return actions.order.create({
+            purchase_units: [
+              {
+                amount: {
+                  value: "0.99",
+                },
+                description: "MR BEAST CHALLENGE Entry fee",
+              },
+            ],
+          });
+        },
+        onApprove: async (data: any, actions: any) => {
+          setProcessingPayment(true);
+          try {
+            // Capture the order
+            const details = await actions.order.capture();
+
+            // Mark payment as completed in database
+            const response = await fetch("/api/payment-complete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ email: user.email }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to complete payment in database");
+            }
+
+            // Redirect to success page
+            const params = new URLSearchParams({
+              tid: user.transactionId || "",
+              email: user.email || "",
+              name: user.name || "",
+            });
+            router.push(`/success?${params.toString()}`);
+          } catch (err) {
+            console.error("Payment error:", err);
+            setPaypalError(
+              "Payment was successful but failed to save. Please contact support with your order ID.",
+            );
+            setProcessingPayment(false);
+          }
+        },
+        onError: (err: any) => {
+          console.error("PayPal error:", err);
+          setPaypalError(
+            "Payment failed. Please try again or use a different payment method.",
+          );
+          setProcessingPayment(false);
+        },
+      })
+      .render("#paypal-button-container");
+  };
 
   const handleLogout = async () => {
     try {
@@ -52,40 +148,6 @@ export default function PaymentPage() {
       router.push("/");
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const handlePayment = async () => {
-    setProcessingPayment(true);
-    try {
-      // Simulate payment processing
-      // In production, integrate with Stripe/PayPal/etc
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Mark payment as completed in database
-      try {
-        await fetch("/api/payment-complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ email: user.email }),
-        });
-      } catch (err) {
-        console.error("Error marking payment complete:", err);
-      }
-
-      // Redirect to success page with details
-      const params = new URLSearchParams({
-        tid: user.transactionId || "",
-        email: user.email || "",
-        name: user.name || "",
-      });
-      router.push(`/success?${params.toString()}`);
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed. Please try again.");
-    } finally {
-      setProcessingPayment(false);
     }
   };
 
@@ -294,46 +356,52 @@ export default function PaymentPage() {
                 </div>
               )}
 
-              {/* Payment Button - Disabled if not verified */}
-              <button
-                onClick={handlePayment}
-                disabled={processingPayment || !user?.verified}
-                className={`w-full text-white font-bold py-4 rounded-lg transition ${
-                  user?.verified
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {processingPayment ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Processing Payment...
-                  </span>
-                ) : user?.verified ? (
-                  "Complete Payment - $0.99"
-                ) : (
-                  "Verify Email First"
-                )}
-              </button>
+              {/* Payment Button - PayPal if verified */}
+              {user?.verified && (
+                <>
+                  {paypalError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                      {paypalError}
+                    </div>
+                  )}
+                  <div
+                    id="paypal-button-container"
+                    className="mb-4"
+                    style={{
+                      opacity: paypalReady && processingPayment ? 0.5 : 1,
+                      pointerEvents: processingPayment ? "none" : "auto",
+                    }}
+                  />
+                  {!paypalReady && (
+                    <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 text-center">
+                      <div className="inline-block animate-spin mb-2">
+                        <svg
+                          className="w-6 h-6 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600">Loading PayPal...</p>
+                    </div>
+                  )}
+                </>
+              )}
+              {/* Show message if not verified */}
+              {!user?.verified && (
+                <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center">
+                  <p className="text-gray-600">
+                    Verify your email to complete payment
+                  </p>
+                </div>
+              )}
 
               <p className="text-center text-xs text-gray-500 mt-4">
                 🔒 Your payment is secure and encrypted
